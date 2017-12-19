@@ -1,0 +1,310 @@
+Option Explicit
+'*********************************************************************
+'XL2L (Excel Tool): Useful user-defined functions for Excel
+'By Mitch Hollberg (mhollberg@gmail.com)
+'https://www.linkedin.com/in/mitchhollberg/
+'*****************************************************
+
+
+
+'****** NOTE ABOUT SAVING CHANGES TO THIS Excel ADD IN TEMPLATE *******
+'Make the 'Immediate' window visible, then run the following:
+'   ThisWorkbook.Save
+'**********************************************************************
+
+Function XL2L_Style_FontName(r_cell As Range) As String
+'Return the font of the indicated cell
+    XL2L_Style_FontName = r_cell.Font.Name
+End Function
+
+Function XL2L_Style_FontColorRGB(r_cell As Range) As String
+'Return the font of the indicated cell
+    XL2L_Style_FontColorRGB = r_cell.Font.Color
+End Function
+
+Function XL2L_Style_RGB2Hex(ByVal R As Long, ByVal G As _
+    Long, ByVal B As Long) As String
+'Pass 3 distinct R,G,B values (integers 1-255), returns Hex Color code
+
+Dim clr As OLE_COLOR
+Dim txt As String
+
+    clr = R + 256 * (G + 256 * B)
+    txt = Hex$(clr)
+    If Len(txt) < 6 Then txt = "0" & txt
+    XL2L_Style_RGB2Hex = txt
+End Function    'End Function XL2L_Style_RGB2Hex
+
+Public Function XL2L_Style_HEX2RGB(ByVal HexColor As String) As String
+'The input at this point could be HexColor = "#00FF1F"
+
+Dim Red As String
+Dim Green As String
+Dim Blue As String
+
+HexColor = Replace(HexColor, "#", "")
+    'Here HexColor = "00FF1F"
+
+Red = Val("&H" & Mid(HexColor, 1, 2))
+    'The red value is now the long version of "00"
+
+Green = Val("&H" & Mid(HexColor, 3, 2))
+    'The red value is now the long version of "FF"
+
+Blue = Val("&H" & Mid(HexColor, 5, 2))
+    'The red value is now the long version of "1F"
+
+
+'XL2L_Style_HEX2RGB = RGB(Red, Green, Blue)
+XL2L_Style_HEX2RGB = Red & ", " & Green & ", " & Blue
+    'The output is an RGB value
+
+End Function
+
+Function XL2L_style_rgb2long(R As Long, G As Long, B As Long) As Long
+    XL2L_style_rgb2long = RGB(R, G, B)
+End Function
+    
+Public Function XL2L_style_Long2RGB(l_long As Long) As String
+    Dim R As Integer
+    Dim G As Integer
+    Dim B As Integer
+    R = l_long Mod 256
+    G = Int(l_long / 256) Mod 256
+    B = Int(l_long / (256 ^ 2)) Mod 256
+    XL2L_style_Long2RGB = R & ", " & G & ", " & B
+    
+End Function
+Public Function XL2L_style_FillColorRGB(r_Range As Range) As Long
+    XL2L_style_FillColorRGB = r_Range.Interior.Color
+End Function
+
+Function XL2L_rangeConcat(r_Range As Range, Optional s_separator As String) As String
+'Concatenate all values in a range
+Dim r_cell As Range
+
+For Each r_cell In r_Range
+    XL2L_rangeConcat = XL2L_rangeConcat & r_cell.Value & s_separator
+Next r_cell
+End Function    'XL2L_rangeConcat
+
+Function XL2L_Nav_Path() As String
+    'Return the Filepath of the document
+    XL2L_Nav_Path = ActiveWorkbook.Path
+End Function
+
+Function XL2L_Nav_Filename() As String
+    'Return the filename of the current document
+    XL2L_Nav_Filename = ActiveWorkbook.Name
+End Function
+
+Function XL2L_Nav_Fullpath() As String
+    'Return the full path (Filepath & filename) of the current document
+    XL2L_Nav_Fullpath = ActiveWorkbook.Path & "\" & ActiveWorkbook.Name
+End Function
+
+Function XL2L_Meta_Filesize() As Long
+    'Return Filesize of current document
+     XL2L_Meta_Filesize = FileLen(ActiveWorkbook.Path & "\" & ActiveWorkbook.Name)
+End Function
+
+Function XL2L_me() As String
+    'Return address of current cell
+    Dim Boo As String
+   ' boo = ActiveCell.Font.Background
+    XL2L_me = ActiveCell.Address
+End Function
+
+Function XL2L_Get_URL(r_Range As Range) As String
+    XL2L_Get_URL = r_Range.Hyperlinks.Item(1).Address
+End Function
+
+Function XL2L_Make_URL(s_Link As String, Optional s_display As String)
+'Given a URL s_Link and (optional) display string s_display, insert a hyperlink to the s_link.
+'This function gets around the 255 character link limit in the native =HYPERLINK() Excel function
+'NOTE: the r_Cell value is the cell 'holding' the function; this is required to return the
+'Function results (the new hyperlink) to the appropriate cell
+    
+    'If s_display is empty, replace with the s_Link value
+    If s_display = "" Then
+        s_display = s_Link
+    End If
+    
+    With Application.Caller
+        .Hyperlinks.Add _
+            Anchor:=ActiveCell, _
+            Address:=s_Link, _
+            TextToDisplay:=s_display
+    End With
+    
+    XL2L_Make_URL = s_display
+
+End Function    'XL2L_Make_URL
+
+Function XL2L_RegExpReplace(ReplaceIn, _
+    ReplaceWhat As String, ReplaceWith As String, Optional IgnoreCase As Boolean = False)
+    'ReplaceIn: String or Cell containing 'search' string
+    'Replace What: Regexp to search for
+    'Replace with: Text string to substitute/replace matching RegExp result
+    'Ignore Case: TRUE if ignore capitalization, otherwise false.
+    'Based on code at: http://www.dzone.com/snippets/regular-expressions-excel-2007
+    Dim RE As Object
+    Set RE = CreateObject("vbscript.regexp")
+    RE.IgnoreCase = IgnoreCase
+    RE.Pattern = ReplaceWhat
+    RE.Global = True
+    XL2L_RegExpReplace = RE.Replace(ReplaceIn, ReplaceWith)
+    Set RE = Nothing
+End Function
+Function XL2L_RegExpFind(FindIn, FindWhat As String, _
+        Optional IgnoreCase As Boolean = False)
+    Dim i As Long
+    Dim matchCount As Integer
+    Dim RE As Object, allMatches As Object, aMatch As Object
+    Set RE = CreateObject("vbscript.regexp")
+    RE.Pattern = FindWhat
+    RE.IgnoreCase = IgnoreCase
+    RE.Global = True
+    Set allMatches = RE.Execute(FindIn)
+    matchCount = allMatches.Count
+    If matchCount >= 1 Then
+        ReDim rslt(0 To allMatches.Count - 1)
+        For i = 0 To allMatches.Count - 1
+            rslt(i) = allMatches(i).Value
+        Next i
+        XL2L_RegExpFind = rslt
+    Else
+        XL2L_RegExpFind = ""
+    End If
+    Set RE = Nothing
+End Function
+
+Function XL2L_RemoveHTML(strText)
+    'Qlikview imports 'Rich Text' fields from Sharepoint with HTML formatting tags included
+    ' Example: <b>Bolded text</b>, <div>Section</div>
+    ' This function strips out the HTML tags and any attributes within the tags, and removes 'non breaking space' (&nbsp;) strings.
+    Dim RegEx As Object
+    Set RegEx = CreateObject("vbscript.regexp")
+
+    RegEx.Pattern = "<[^>]*>"
+    RegEx.Global = True
+
+    XL2L_RemoveHTML = RegEx.Replace(strText, "")
+    XL2L_RemoveHTML = Replace(XL2L_RemoveHTML, "&nbsp;", Chr(13))
+End Function
+
+Function XL2L_URLDecode(ByVal s_URL)
+'URL decode Function
+'2001 Antonin Foller, PSTRUH Software, http://www.motobit.com
+  Dim Pos, pPos
+
+  'replace + To Space
+  s_URL = Replace(s_URL, "+", " ")
+
+  On Error Resume Next
+  Dim Stream: Set Stream = CreateObject("ADODB.Stream")
+  If Err = 0 Then 'URLDecode using ADODB.Stream, If possible
+    On Error GoTo 0
+    Stream.Type = 2 'String
+    Stream.Open
+
+    'replace all %XX To character
+    Pos = InStr(1, s_URL, "%")
+    pPos = 1
+    Do While Pos > 0
+      Stream.WriteText Mid(s_URL, pPos, Pos - pPos) + _
+        Chr(CLng("&H" & Mid(s_URL, Pos + 1, 2)))
+      pPos = Pos + 3
+      Pos = InStr(pPos, s_URL, "%")
+    Loop
+    Stream.WriteText Mid(s_URL, pPos)
+
+    'Read the text stream
+    Stream.Position = 0
+    XL2L_URLDecode = Stream.ReadText
+
+    'Free resources
+    Stream.Close
+  Else 'URL decode using string concentation
+    On Error GoTo 0
+    'UfUf, this is a little slow method.
+    'Do Not use it For data length over 100k
+    Pos = InStr(1, s_URL, "%")
+    Do While Pos > 0
+      s_URL = Left(s_URL, Pos - 1) + _
+        Chr(CLng("&H" & Mid(s_URL, Pos + 1, 2))) + _
+        Mid(s_URL, Pos + 3)
+      Pos = InStr(Pos + 1, s_URL, "%")
+    Loop
+    XL2L_URLDecode = s_URL
+  End If
+End Function
+
+Function xl2l_countLeadingSpaces(sText As String) As Integer
+    Dim iCharLocation As Integer
+    
+    xl2l_countLeadingSpaces = 0
+    For iCharLocation = 1 To Len(sText)
+        If Mid(sText, iCharLocation, 1) = Chr(32) Then
+            xl2l_countLeadingSpaces = xl2l_countLeadingSpaces + 1
+        Else
+            Exit For
+        End If
+    Next iCharLocation
+        
+End Function
+
+Function xl2l_StrSplit(sText As Variant, sDelimiter As String, iOccurrence As Integer) As String
+    'Given a delimeted string (ex: "55; boo; $37.12; hello"), find the 'Nth' element within each delimeter
+    'Example: xl2l_Splitstring("55; boo; $37.12", ";", 2) => $37.12
+    
+    xl2l_StrSplit = Split(sText, sDelimiter)(iOccurrence - 1)
+    
+End Function
+
+Function xl2l_str_reverse(str As String) As String
+    'Reverse a string
+    xl2l_str_reverse = StrReverse(Trim(str))
+End Function    'End function xl2l_str_reverse
+
+Function xl2l_meta_currentuser()
+    'Returns the windows login id of the current user
+    xl2l_meta_currentuser = Application.UserName
+End Function
+
+Function xl2l_Meta_GetUserName()
+    Dim ObjWshNw As Object
+    Set ObjWshNw = CreateObject("WScript.Network")
+    
+    xl2l_Meta_GetUserName = ObjWshNw.UserName & " - " & ObjWshNw.ComputerName & " - " & ObjWshNw.UserDomain
+End Function
+
+Public Function xl2l_SlicerItems(SlicerName As String) As String
+'Pass the name of a PivotTable Slicer, get back string listing the selected values
+    Dim oSc As SlicerCache
+    Dim oSi As SlicerItem
+    Dim lCt As Long
+    On Error Resume Next
+    Application.Volatile
+    Set oSc = ActiveWorkbook.SlicerCaches(SlicerName)
+    If Not oSc Is Nothing Then
+        For Each oSi In oSc.SlicerItems
+            If oSi.Selected Then
+                xl2l_SlicerItems = xl2l_SlicerItems & oSi.Name & ", "
+                lCt = lCt + 1
+            End If
+        Next
+        If Len(xl2l_SlicerItems) > 0 Then
+            If lCt = oSc.SlicerItems.Count Then
+                xl2l_SlicerItems = "All Items"
+            Else
+                xl2l_SlicerItems = Left(xl2l_SlicerItems, Len(xl2l_SlicerItems) - 2)
+            End If
+        Else
+            xl2l_SlicerItems = "No items selected"
+        End If
+    Else
+        xl2l_SlicerItems = "No slicer with name '" & SlicerName & "' was found"
+    End If
+End Function    'xl2l_SlicerItems
+
