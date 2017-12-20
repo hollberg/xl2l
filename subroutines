@@ -1,0 +1,110 @@
+Option Explicit
+
+'****** NOTE ABOUT SAVING CHANGES TO THIS Excel ADD IN TEMPLATE *******
+'Make the 'Immediate' window visible, then run the following:
+'   ThisWorkbook.Save
+'**********************************************************************
+
+Sub make_index()
+'Builds a new tab containing an 'Index' of the entire workbook;
+'specifically, a table with one row per tab in the workbook, with a hyperlink that will take you
+'directly to the tab (defaults to cell "A1" of the tab)
+
+Dim o_WB As Workbook
+Set o_WB = ActiveWorkbook
+Dim o_Tab As Worksheet
+
+'Define the name of the tab where the index will be created. *** NOTE *** Change the value of 's_IndexName' as needed!
+Dim s_IndexName As String
+s_IndexName = "Index"
+
+Dim i_tabCount As Integer
+i_tabCount = 10 'Initial value sets the row where tab names will first appear on the index tab.
+
+Dim s_Tab As String 'The name of the current tab
+o_WB.Sheets(s_IndexName).Activate
+'Loop over all worksheets; write the name and a hyperlink for each one
+For Each o_Tab In o_WB.Worksheets
+    s_Tab = o_Tab.Name
+    o_WB.Sheets(s_IndexName).Range("A" & i_tabCount).Value = s_Tab
+    o_WB.Sheets(s_IndexName).Range("B" & i_tabCount).Activate
+    ActiveSheet.Hyperlinks.Add Anchor:=Selection, Address:="", SubAddress:= _
+        "'" & s_Tab & "'!A1", TextToDisplay:="'" & s_Tab & "'!A1"   'ie, "'3Com'!A1"
+    i_tabCount = i_tabCount + 1
+Next
+
+'Adjust column widths to fit new entries
+Columns("A:B").EntireColumn.AutoFit
+
+End Sub
+
+Sub BulkUnprotectSheet()
+'Remove protection from all sheets in a workbook.
+'Modified from code found at http://www.extendoffice.com/documents/excel/1154-excel-unprotect-multiple-sheets.html
+    Dim myWorksheet As Worksheet
+    On Error GoTo oops
+    'unpass = InputBox("password")
+    
+    For Each myWorksheet In ActiveWorkbook.Worksheets
+      myWorksheet.Unprotect Password:="12345678"  'sPassword
+        Next
+    Exit Sub
+
+oops:   MsgBox "There is s problem - check your password, capslock, etc."
+End Sub
+
+Sub BulkProtectSheet()
+'Add protection to all sheets in a workbook.
+'Modified from code found at http://www.extendoffice.com/documents/excel/1154-excel-unprotect-multiple-sheets.html
+    Dim myWorksheet As Worksheet
+    On Error GoTo oops
+   
+    
+    For Each myWorksheet In ActiveWorkbook.Worksheets
+      myWorksheet.Protect Password:="12345678"  'sPassword
+        Next
+    Exit Sub
+
+oops:   MsgBox "There is s problem - check your password, capslock, etc."
+End Sub
+
+'This subroutine opens an outlook email, addresses it, and attaches a file. Pass
+'the e-mail address and full filepath of the file to be attached.
+Sub SendMe(v_email, v_filepath)
+  
+    If Not ActiveWorkbook.Saved Then
+      
+    ActiveWorkbook.Save
+      
+    End If
+      
+    Set ol = CreateObject("Outlook.Application")
+      
+    Set msg = ol.CreateItem(0)
+      
+    msg.To = v_email
+      
+    msg.Subject = ActiveWorkbook.Name
+      
+    msg.Display
+    Set myAttachments = msg.Attachments
+    
+    Set myAttachments = myAttachments.Add(v_filepath) '("C:\Documents and Settings\mholberg\My Documents\Borders\Macros\email.xls")
+    ', olByValue, 1, "4th Quarter 1996 Results Chart"
+    
+      
+    msg.Display
+      
+    ' next statement will trigger security prompt
+      
+    'msg.Send
+    '.Display
+    'Application.Wait (Now + TimeValue("0:00:05"))
+    'Application.SendKeys "%s"
+    'Application.Wait (Now + TimeValue("0:00:05"))
+      
+    Set msg = Nothing
+      
+    Set ol = Nothing
+  
+End Sub 'Send_me
